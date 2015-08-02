@@ -3,6 +3,133 @@
 Release History
 ---------------
 
+2.7.0 (2015-05-03)
+++++++++++++++++++
+
+This is the first release that follows our new release process. For more, see
+`our documentation
+<http://docs.python-requests.org/en/latest/community/release-process/>`_.
+
+**Bugfixes**
+
+- Updated urllib3 to 1.10.4, resolving several bugs involving chunked transfer
+  encoding and response framing.
+
+2.6.2 (2015-04-23)
+++++++++++++++++++
+
+**Bugfixes**
+
+- Fix regression where compressed data that was sent as chunked data was not
+  properly decompressed. (#2561)
+
+2.6.1 (2015-04-22)
+++++++++++++++++++
+
+**Bugfixes**
+
+- Remove VendorAlias import machinery introduced in v2.5.2.
+
+- Simplify the PreparedRequest.prepare API: We no longer require the user to
+  pass an empty list to the hooks keyword argument. (c.f. #2552)
+
+- Resolve redirects now receives and forwards all of the original arguments to
+  the adapter. (#2503)
+
+- Handle UnicodeDecodeErrors when trying to deal with a unicode URL that
+  cannot be encoded in ASCII. (#2540)
+
+- Populate the parsed path of the URI field when performing Digest
+  Authentication. (#2426)
+
+- Copy a PreparedRequest's CookieJar more reliably when it is not an instance
+  of RequestsCookieJar. (#2527)
+
+2.6.0 (2015-03-14)
+++++++++++++++++++
+
+**Bugfixes**
+
+- CVE-2015-2296: Fix handling of cookies on redirect. Previously a cookie
+  without a host value set would use the hostname for the redirected URL
+  exposing requests users to session fixation attacks and potentially cookie
+  stealing. This was disclosed privately by Matthew Daley of
+  `BugFuzz <https://bugfuzz.com>`_. This affects all versions of requests from
+  v2.1.0 to v2.5.3 (inclusive on both ends).
+
+- Fix error when requests is an ``install_requires`` dependency and ``python
+  setup.py test`` is run. (#2462)
+
+- Fix error when urllib3 is unbundled and requests continues to use the
+  vendored import location.
+
+- Include fixes to ``urllib3``'s header handling.
+
+- Requests' handling of unvendored dependencies is now more restrictive.
+
+**Features and Improvements**
+
+- Support bytearrays when passed as parameters in the ``files`` argument.
+  (#2468)
+
+- Avoid data duplication when creating a request with ``str``, ``bytes``, or
+  ``bytearray`` input to the ``files`` argument.
+
+2.5.3 (2015-02-24)
+++++++++++++++++++
+
+**Bugfixes**
+
+- Revert changes to our vendored certificate bundle. For more context see
+  (#2455, #2456, and http://bugs.python.org/issue23476)
+
+2.5.2 (2015-02-23)
+++++++++++++++++++
+
+**Features and Improvements**
+
+- Add sha256 fingerprint support. (`shazow/urllib3#540`_)
+
+- Improve the performance of headers. (`shazow/urllib3#544`_)
+
+**Bugfixes**
+
+- Copy pip's import machinery. When downstream redistributors remove
+  requests.packages.urllib3 the import machinery will continue to let those
+  same symbols work. Example usage in requests' documentation and 3rd-party
+  libraries relying on the vendored copies of urllib3 will work without having
+  to fallback to the system urllib3.
+
+- Attempt to quote parts of the URL on redirect if unquoting and then quoting
+  fails. (#2356)
+
+- Fix filename type check for multipart form-data uploads. (#2411)
+
+- Properly handle the case where a server issuing digest authentication
+  challenges provides both auth and auth-int qop-values. (#2408)
+
+- Fix a socket leak. (`shazow/urllib3#549`_)
+
+- Fix multiple ``Set-Cookie`` headers properly. (`shazow/urllib3#534`_)
+
+- Disable the built-in hostname verification. (`shazow/urllib3#526`_)
+
+- Fix the behaviour of decoding an exhausted stream. (`shazow/urllib3#535`_)
+
+**Security**
+
+- Pulled in an updated ``cacert.pem``.
+
+- Drop RC4 from the default cipher list. (`shazow/urllib3#551`_)
+
+.. _shazow/urllib3#551: https://github.com/shazow/urllib3/pull/551
+.. _shazow/urllib3#549: https://github.com/shazow/urllib3/pull/549
+.. _shazow/urllib3#544: https://github.com/shazow/urllib3/pull/544
+.. _shazow/urllib3#540: https://github.com/shazow/urllib3/pull/540
+.. _shazow/urllib3#535: https://github.com/shazow/urllib3/pull/535
+.. _shazow/urllib3#534: https://github.com/shazow/urllib3/pull/534
+.. _shazow/urllib3#526: https://github.com/shazow/urllib3/pull/526
+
 2.5.1 (2014-12-23)
 ++++++++++++++++++
 
@@ -35,7 +162,7 @@ Release History
 **Bugfixes**
 
 - Only parse the URL once (#2353)
-- Allow Content-Length header to always be overriden (#2332)
+- Allow Content-Length header to always be overridden (#2332)
 - Properly handle files in HTTPDigestAuth (#2333)
 - Cap redirect_cache size to prevent memory abuse (#2299)
 - Fix HTTPDigestAuth handling of redirects after authenticating successfully
@@ -383,7 +510,7 @@ This is not a backwards compatible change.
 - Digest Authentication improvements.
 - Ensure proxy exclusions work properly.
 - Clearer UnicodeError exceptions.
-- Automatic casting of URLs to tsrings (fURL and such)
+- Automatic casting of URLs to strings (fURL and such)
 - Bugfixes.
 
 0.13.6 (2012-08-06)
@@ -435,7 +562,7 @@ This is not a backwards compatible change.
 
 - Removal of Requests.async in favor of `grequests <https://github.com/kennethreitz/grequests>`_
 - Allow disabling of cookie persistiance.
-- New implimentation of safe_mode
+- New implementation of safe_mode
 - cookies.get now supports default argument
 - Session cookies not saved when Session.request is called with return_response=False
 - Env: no_proxy support.
@@ -552,7 +679,7 @@ This is not a backwards compatible change.
 
 * ``Response.content`` is now bytes-only. (*Backwards Incompatible*)
 * New ``Response.text`` is unicode-only.
-* If no ``Response.encoding`` is specified and ``chardet`` is available, ``Respoonse.text`` will guess an encoding.
+* If no ``Response.encoding`` is specified and ``chardet`` is available, ``Response.text`` will guess an encoding.
 * Default to ISO-8859-1 (Western) encoding for "text" subtypes.
 * Removal of `decode_unicode`. (*Backwards Incompatible*)
 * New multiple-hooks system.
@@ -672,7 +799,7 @@ This is not a backwards compatible change.
 0.7.5 (2011-11-04)
 ++++++++++++++++++
 
-* Response.content = None if there was an invalid repsonse.
+* Response.content = None if there was an invalid response.
 * Redirection auth handling.
 
 0.7.4 (2011-10-26)
@@ -759,7 +886,7 @@ This is not a backwards compatible change.
 ++++++++++++++++++
 
 * New callback hook system
-* New persistient sessions object and context manager
+* New persistent sessions object and context manager
 * Transparent Dict-cookie handling
 * Status code reference object
 * Removed Response.cached
@@ -793,7 +920,7 @@ This is not a backwards compatible change.
 * Redirect Fixes
 * settings.verbose stream writing
 * Querystrings for all methods
-* URLErrors (Connection Refused, Timeout, Invalid URLs) are treated as explicity raised
+* URLErrors (Connection Refused, Timeout, Invalid URLs) are treated as explicitly raised
   ``r.requests.get('hwe://blah'); r.raise_for_status()``
 
 

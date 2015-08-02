@@ -268,12 +268,18 @@ Requests also supports Chunked transfer encoding for outgoing and incoming reque
 To send a chunk-encoded request, simply provide a generator (or any iterator without
 a length) for your body::
 
-
     def gen():
         yield 'hi'
         yield 'there'
 
     requests.post('http://some.url/chunked', data=gen())
+
+For chunked encoded responses, it's best to iterate over the data using
+:meth:`Response.iter_content() <requests.models.Response.iter_content>`. In
+an ideal situation you'll have set ``stream=True`` on the request, in which
+case you can iterate chunk-by-chunk by calling ``iter_content`` with a chunk
+size parameter of ``None``. If you want to set a maximum size of the chunk,
+you can set a chunk size parameter to any integer.
 
 
 .. _multipart:
@@ -399,6 +405,19 @@ set ``stream`` to ``True`` and iterate over the response with
         if line:
             print(json.loads(line))
 
+.. warning::
+
+    :class:`~requests.Response.iter_lines()` is not reentrant safe.
+    Calling this method multiple times causes some of the received data
+    being lost. In case you need to call it from multiple places, use
+    the resulting iterator object instead::
+
+        lines = r.iter_lines()
+        # Save the first line for later or just skip it
+        first_line = next(lines)
+        for line in lines:
+            print(line)
+
 .. _proxies:
 
 Proxies
@@ -435,6 +454,8 @@ To use HTTP Basic Auth with your proxy, use the `http://user:password@host/` syn
 
 Note that proxy URLs must include the scheme.
 
+.. _compliance:
+
 Compliance
 ----------
 
@@ -460,6 +481,8 @@ that the default charset must be ``ISO-8859-1``. Requests follows the
 specification in this case. If you require a different encoding, you can
 manually set the :attr:`Response.encoding <requests.Response.encoding>`
 property, or use the raw :attr:`Response.content <requests.Response.content>`.
+
+.. _http-verbs:
 
 HTTP Verbs
 ----------
@@ -634,6 +657,8 @@ headers.
 Excellent. Time to write a Python program that abuses the GitHub API in all
 kinds of exciting ways, 4995 more times.
 
+.. _link-headers:
+
 Link Headers
 ------------
 
@@ -655,6 +680,8 @@ Requests will automatically parse these link headers and make them easily consum
 
     >>> r.links["last"]
     {'url': 'https://api.github.com/users/kennethreitz/repos?page=7&per_page=10', 'rel': 'last'}
+
+.. _transport-adapters:
 
 Transport Adapters
 ------------------
@@ -724,6 +751,8 @@ SSLv3:
 .. _`described here`: http://www.kennethreitz.org/essays/the-future-of-python-http
 .. _`urllib3`: https://github.com/shazow/urllib3
 
+.. _blocking-or-nonblocking:
+
 Blocking Or Non-Blocking?
 -------------------------
 
@@ -740,6 +769,8 @@ Two excellent examples are `grequests`_ and `requests-futures`_.
 
 .. _`grequests`: https://github.com/kennethreitz/grequests
 .. _`requests-futures`: https://github.com/ross/requests-futures
+
+.. _timeouts:
 
 Timeouts
 --------
@@ -778,6 +809,8 @@ coffee.
     r = requests.get('https://github.com', timeout=None)
 
 .. _`connect()`: http://linux.die.net/man/2/connect
+
+.. _ca-certificates:
 
 CA Certificates
 ---------------

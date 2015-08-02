@@ -9,6 +9,7 @@ import os
 import pickle
 import unittest
 import collections
+import contextlib
 
 import io
 import requests
@@ -301,13 +302,15 @@ class RequestsTestCase(unittest.TestCase):
         r = s.get(url)
         assert r.status_code == 200
 
-    def test_connection_error(self):
+    def test_connection_error_invalid_domain(self):
         """Connecting to an unknown domain should raise a ConnectionError"""
         with pytest.raises(ConnectionError):
-            requests.get("http://fooobarbangbazbing.httpbin.org")
+            requests.get("http://doesnotexist.google.com")
 
+    def test_connection_error_invalid_port(self):
+        """Connecting to an invalid port should raise a ConnectionError"""
         with pytest.raises(ConnectionError):
-            requests.get("http://httpbin.org:1")
+            requests.get("http://httpbin.org:1", timeout=1)
 
     def test_LocationParseError(self):
         """Inputing a URL that cannot be parsed should raise an InvalidURL error"""
@@ -933,6 +936,19 @@ class RequestsTestCase(unittest.TestCase):
 
         assert 'multipart/form-data' in p.headers['Content-Type']
 
+    def test_can_send_bytes_bytearray_objects_with_files(self):
+        # Test bytes:
+        data = {'a': 'this is a string'}
+        files = {'b': b'foo'}
+        r = requests.Request('POST', httpbin('post'), data=data, files=files)
+        p = r.prepare()
+        assert 'multipart/form-data' in p.headers['Content-Type']
+        # Test bytearrays:
+        files = {'b': bytearray(b'foo')}
+        r = requests.Request('POST', httpbin('post'), data=data, files=files)
+        p = r.prepare()
+        assert 'multipart/form-data' in p.headers['Content-Type']
+
     def test_can_send_file_object_with_non_string_filename(self):
         f = io.BytesIO()
         f.name = 2
@@ -1036,6 +1052,32 @@ class RequestsTestCase(unittest.TestCase):
         assert r.status_code == 200
         assert 'application/json' in r.request.headers['Content-Type']
         assert {'life': 42} == r.json()['json']
+
+    def test_response_iter_lines(self):
+        r = requests.get(httpbin('stream/4'), stream=True)
+        assert r.status_code == 200
+
+        it = r.iter_lines()
+        next(it)
+        assert len(list(it)) == 3
+
+    def test_unconsumed_session_response_closes_connection(self):
+        s = requests.session()
+
+        with contextlib.closing(s.get(httpbin('stream/4'), stream=True)) as response:
+            pass
+
+        self.assertFalse(response._content_consumed)
+        self.assertTrue(response.raw.closed)
+
+    @pytest.mark.xfail
+    def test_response_iter_lines_reentrant(self):
+        """Response.iter_lines() is not reentrant safe"""
+        r = requests.get(httpbin('stream/4'), stream=True)
+        assert r.status_code == 200
+
+        next(r.iter_lines())
+        assert len(list(r.iter_lines())) == 3
 
 
 class TestContentEncodingDetection(unittest.TestCase):
@@ -1182,6 +1224,7 @@ class TestCaseInsensitiveDict(unittest.TestCase):
         del othercid['spam']
         assert cid != othercid
         assert cid == {'spam': 'blueval', 'eggs': 'redval'}
+        assert cid != object()
 
     def test_setdefault(self):
         cid = CaseInsensitiveDict({'Spam': 'blueval'})
@@ -1218,6 +1261,16 @@ class TestCaseInsensitiveDict(unittest.TestCase):
         assert frozenset(i[0] for i in cid.items()) == keyset
         assert frozenset(cid.keys()) == keyset
         assert frozenset(cid) == keyset
+
+    def test_copy(self):
+        cid = CaseInsensitiveDict({
+            'Accept': 'application/json',
+            'user-Agent': 'requests',
+        })
+        cid_copy = cid.copy()
+        assert cid == cid_copy
+        cid['changed'] = True
+        assert cid != cid_copy
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -1581,7 +1634,6 @@ def test_prepare_unicode_url():
     p.prepare(
         method='GET',
         url=u('http://www.example.com/üniçø∂é'),
-        hooks=[]
     )
     assert_copy(p, p.copy())
 
@@ -1595,6 +1647,13 @@ def test_urllib3_retries():
 
     with pytest.raises(RetryError):
         s.get(httpbin('status/500'))
+
+def test_vendor_aliases():
+    from requests.packages import urllib3
+    from requests.packages import chardet
+
+    with pytest.raises(ImportError):
+        from requests.packages import webbrowser
 
 if __name__ == '__main__':
     unittest.main()
